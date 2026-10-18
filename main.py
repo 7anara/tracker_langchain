@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -5,9 +7,18 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from mysite.database.db import get_db
+from mysite.api.auth import auth_router
+from mysite.database.db import Base, engine, get_db
 
-app = FastAPI(title="AI Personal Assistant Agent")
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # Importing the auth router registers UserProfile with the shared Base.
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(title="AI Personal Assistant Agent", lifespan=lifespan)
+app.include_router(auth_router)
 
 
 @app.get("/health")
