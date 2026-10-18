@@ -1,16 +1,22 @@
-# This is a sample Python script.
+from typing import Annotated
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from mysite.database.db import get_db
+
+app = FastAPI(title="AI Personal Assistant Agent")
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+@app.get("/health")
+def health(db: Annotated[Session, Depends(get_db)]) -> dict[str, str]:
+    """Report whether the application can connect to its database."""
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503, detail="Database unavailable"
+        ) from exc
+    return {"status": "ok"}
